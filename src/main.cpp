@@ -27,13 +27,18 @@ void runShell() {
 string run(string source) {
     Scanner scanner = Scanner(source);
     vector<Token> tokens = scanner.scan();
-
+    cout << "scanned" << endl;
     Parser parser = Parser(tokens);
     parser.parse();
-   
+    cout << "parsed" << endl;
     for (auto& [token, expr] : parser.commands) {
+        cout << "expanding" << endl;
         expr.expand();
+        cout << "expanded" << endl;
         cout << expr.toString() << endl;
+        expr.index();
+        cout << "indexed" << endl;
+        cout << expr.indicesToString() << endl;
     }
     return "";
 }

@@ -1,7 +1,30 @@
 #include "expr.h"
 #include <iostream>
 #include <span>
+#include <vector>
+#include <memory>
 using namespace std;
+
+class Scope {
+    public:
+        unordered_map<string, int> env;
+        Scope* parent;
+        int lambdaCount;
+
+        Scope(unordered_map<string, int> e, Scope* p, int l) : env(e), parent(p), lambdaCount(l) {}
+
+        Scope* createFunctionalChildScope() {
+            unordered_map<string, int> outenv = env;
+            for (auto& [key, value] : outenv) {
+                value++;
+            }
+            return new Scope(outenv, this, lambdaCount+1);
+        }
+
+        Scope* createChildScope() {
+            return new Scope(env, this, lambdaCount);
+        }
+};
 
 Expr::Expr(vector<Token> literals) {
     this->literals = literals;
@@ -10,6 +33,14 @@ Expr::Expr(vector<Token> literals) {
 string Expr::toString() const {
     string out = "";
     for (Token token : literals) {
+        out += token.lexeme + " ";
+    }
+    return out;
+}
+
+string Expr::indicesToString() const {
+    string out = "";
+    for (Token token : indices) {
         out += token.lexeme + " ";
     }
     return out;
@@ -35,6 +66,7 @@ void Expr::expand() {
             case TokenType::LEFT_PAREN:
                 if (peek().type == TokenType::LAMBDA) { expandFunction(); }
                 else { expandAppl(); }
+                break;
         }
         current++;
     }
@@ -111,28 +143,53 @@ void Expr::expandAppl() {
 
 void Expr::index() {
     int tmpCounter = 0;
+
+    vector<unique_ptr<Scope>> scopes;
+
+    unique_ptr<Scope> global =  make_unique<Scope>(varCounters, nullptr, 0);
+    Scope* curScope = global.get();
+
+    scopes.push_back(move(global));
+
     while (tmpCounter < literals.size()) {
         Token token = literals.at(tmpCounter);
+        cout << scopes.size();
         switch (token.type) {
+
             case TokenType::LEFT_PAREN:
+                indices.push_back(token);
+                if (peek(tmpCounter).type == TokenType::LAMBDA) { 
+                    scopes.push_back( unique_ptr<Scope>(curScope->createFunctionalChildScope()) ); 
+                } 
+                else {
+                    scopes.push_back( unique_ptr<Scope>(curScope->createChildScope()) ); 
+                }
+                
+
+                curScope = scopes.back().get();
+                break;
+
             case TokenType::RIGHT_PAREN:
                 indices.push_back(token);
+                if (curScope->parent == nullptr) {
+                    cout << "nptr err";
+                }
+                curScope = curScope->parent;
                 break;
+
             case TokenType::LAMBDA:
                 indices.push_back(token);
-                for (auto& [key, value] : varCounters) {
-                    value++;
-                }
-                varCounters[peek().lexeme] = 0;
-                tmpCounter++; // consume bound var
+                curScope->env[peek(tmpCounter).lexeme] = 0;
+                tmpCounter++; // consume param
                 break;
             case TokenType::VARIABLE:
                 try {
-                    indices.push_back(Token(TokenType::VARIABLE, varCounters.at(token.lexeme)));
+                    indices.push_back(Token(TokenType::VARIABLE, curScope->env.at(token.lexeme)));
                 }
                 catch (out_of_range) {
-                    
+                    indices.push_back(Token(TokenType::VARIABLE, curScope->lambdaCount));
                 }
+            break;
                 
         }
         tmpCounter++;
@@ -141,6 +198,10 @@ void Expr::index() {
 
 Token Expr::peek() {
     return literals.at(current+1);
+}
+
+Token Expr::peek(int index) {
+    return literals.at(index+1);
 }
 
 int Expr::findEndParen() {

@@ -19,6 +19,7 @@ class Expr {
         void index();
         //string evaluate();
         string toString() const;
+        string indicesToString() const;
 
     private:
         int current = 0;
@@ -31,6 +32,7 @@ class Expr {
 
         int findEndParen();
         Token peek();
+        Token peek(int index);
         void printToCurrent() const;
         void print(int start, int end) const;
 

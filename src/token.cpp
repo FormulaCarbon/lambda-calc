@@ -10,4 +10,5 @@ Token::Token(TokenType type, string lexeme) {
 Token::Token(TokenType type, int index) {
     this->type = type;
     this->index = index;
+    this->lexeme = to_string(index);
 }
