@@ -39,6 +39,10 @@ string run(string source) {
         expr.index();
         cout << "indexed" << endl;
         cout << expr.indicesToString() << endl;
+        cout << "converting to AST" << endl;
+        ExprTree AST = expr.toAST();
+        cout << AST.toString()<<endl;
+        
     }
     return "";
 }

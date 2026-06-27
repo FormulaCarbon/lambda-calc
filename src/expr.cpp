@@ -3,7 +3,27 @@
 #include <span>
 #include <vector>
 #include <memory>
+#include <variant>
+
 using namespace std;
+
+string ExprTree::toString() const {
+        return visit([](const auto& n) {
+            return n.toString();
+        }, node);
+}
+
+string FuncTree::toString() const {
+    return "( function:\n\t" + body->toString() + "\n)";
+}
+
+string ApplTree::toString() const {
+    return "( appl:\n\t" + func->toString() + "\n\t" + arg->toString() + "\n)";
+}
+
+string VarTree::toString() const {
+    return "var: " +  token.lexeme;
+}
 
 class Scope {
     public:
@@ -182,6 +202,7 @@ void Expr::index() {
                 curScope->env[peek(tmpCounter).lexeme] = 0;
                 tmpCounter++; // consume param
                 break;
+
             case TokenType::VARIABLE:
                 try {
                     indices.push_back(Token(TokenType::VARIABLE, curScope->env.at(token.lexeme)));
@@ -189,11 +210,45 @@ void Expr::index() {
                 catch (out_of_range) {
                     indices.push_back(Token(TokenType::VARIABLE, curScope->lambdaCount));
                 }
-            break;
+                break;
+
+            case TokenType::EXPRNAME:
+                indices.push_back(token);
+                break;
                 
         }
         tmpCounter++;
     }
+}
+
+ExprTree Expr::toAST() {
+    while (astcurrent < indices.size()) {
+
+        Token token = indices.at(astcurrent);
+
+        switch (token.type) {
+            case TokenType::LEFT_PAREN: 
+                astcurrent++; // consume (
+                if (indices.at(astcurrent).type == TokenType::LAMBDA) {
+                    astcurrent++; // consume lambda
+                    ExprTree body = toAST();
+                    astcurrent++; //consume )
+                    return ExprTree{FuncTree{make_unique<ExprTree>(move(body))}};
+                }
+                else {
+                    ExprTree func = toAST();
+                    ExprTree arg = toAST();
+                    astcurrent++; //consume )
+                    return ExprTree{ApplTree{make_unique<ExprTree>(move(func)), make_unique<ExprTree>(move(arg))}};
+                }
+                break;
+            case TokenType::EXPRNAME:
+            case TokenType::VARIABLE:
+                return ExprTree{VarTree{token}};
+        }
+        astcurrent++;
+    }
+    throw runtime_error("end");
 }
 
 Token Expr::peek() {
@@ -210,6 +265,19 @@ int Expr::findEndParen() {
     tempcur++; // consume (
     while (unmatchedParen != 0) {
         Token token = literals.at(tempcur);
+        if (token.type == TokenType::LEFT_PAREN) { unmatchedParen++; }
+        else if (token.type == TokenType::RIGHT_PAREN ) { unmatchedParen--; }
+        tempcur++;
+    }
+    return tempcur - 1;
+}
+
+int Expr::findEndParen(vector<Token> tokens, int current) {
+    int tempcur = current;
+    int unmatchedParen = 1;
+    tempcur++; // consume (
+    while (unmatchedParen != 0) {
+        Token token = tokens.at(tempcur);
         if (token.type == TokenType::LEFT_PAREN) { unmatchedParen++; }
         else if (token.type == TokenType::RIGHT_PAREN ) { unmatchedParen--; }
         tempcur++;

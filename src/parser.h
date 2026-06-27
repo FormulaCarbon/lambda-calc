@@ -23,12 +23,12 @@ class Parser {
         Token peek();
 
         void parseExpr();
-        void parseFunction();
-        void parseAppl();
         void parseNamedExpr();
         void parseOut();
         void parseInclude();
         void insertFunction(Token token);
+
+        Expr createAST(vector<Token> exprTokens);
 
 };
 

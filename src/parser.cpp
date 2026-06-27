@@ -1,4 +1,5 @@
 #include <iostream>
+#include <variant>
 
 #include "parser.h"
 #include "expr.h"
@@ -41,6 +42,7 @@ void Parser::parseExpr() {
     }
     current--;
     vector<Token> exprTokens(tokens.begin() + start, tokens.begin() + current+1);
+    // CONVERT TO DE BRUJIN, PARSE TO AST, ADD AST TO COMMANDS INSTEAD
     commands.push_back(make_tuple(tokens.at(start), Expr(exprTokens)));
 }
 
@@ -83,5 +85,11 @@ void Parser::parseInclude() {
     vector<Token> exprTokens(tokens.begin() + start, tokens.begin() + current);
     commands.push_back(make_tuple(exprName, Expr(exprTokens)));
 }
+ /*
+Expr Parser::createAST(vector<Token> exprTokens) {
+    Expr expr = Expr(exprTokens);
+    expr.expand();
+    expr.index();
+    ex
 
-
+}*/

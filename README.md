@@ -11,7 +11,8 @@ just replace all instances of the parameter in the function body with the argume
 
 methodology:
 Parse tokens
-Convert to De Brojin indices
+Convert to De Brujin indices
+Create AST
 Do Beta Reduction
 
 language design:
